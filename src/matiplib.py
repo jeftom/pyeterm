@@ -73,7 +73,6 @@ class MATIP(object):
         if self.debuglevel > 0:
             print>>stderr, 'connect:', (host, port)
         self.sock = self._get_socket(host, port, self.timeout)
-        self.getreply()
         
     def send(self, content):
         if self.debuglevel > 0:
@@ -88,10 +87,11 @@ class MATIP(object):
             raise MATIPServerDisconnected('Please run connect() first')
         
     def getreply(self):
-        if self.file is None:
-            self.file = self.sock.makefile('rb')
+#         if self.file is None:
+#             self.file = self.sock.makefile('rb')
         try:
-            resp = self.file.readline()
+#             resp = self.file.readline()
+            resp = self.sock.recv(4096)
         except socket.error as e:
             self.close()
             raise MATIPServerDisconnected("Connection unexpectedly closed: "
@@ -209,14 +209,14 @@ class MATIP(object):
         for ascu in ascus:
             content += struct.pack(fmt, *ascu)
     
-        return self.createPacket(self.ver, chr(0xFE), content)
+        return self.createPacket(self.ver, 0xFE, content)
     
     def getDataPacket(self, ascu, data):
         content = ascu[:3]+chr(1)+ascu[3:]
         content += chr(0x70)
         content += data
         content += chr(0x3)
-        return self.createPacket(self.ver, chr(0), content)
+        return self.createPacket(self.ver, 0, content)
             
     def close(self):
         if self.file:
@@ -227,7 +227,6 @@ class MATIP(object):
         self.sock = None
         
     
-
 if __name__ == "__main__":
     import ConfigParser
     import codecs    
