@@ -23,13 +23,16 @@ class EtermLibrary(object):
     debug_level = 0
     eterm_print_pattern = re.compile(r"([^\r]{80})")
 
-    def __init__(self, host, port):
+    def __init__(self):
         '''
         Constructor
         '''
-        self.matip = MATIP(host, port)
+        self.matip = MATIP()
         self.ascus = []
         self.currentSessionIndex = 0
+        
+    def connect(self, host, port):
+        self.matip.connect(host, port)
         
     def __getMac(self):
         node = uuid.getnode()
@@ -38,8 +41,8 @@ class EtermLibrary(object):
         
     def login(self, username, password):
         ## 构造登录报文
-        content = chr(self.ver)    # version
-        content += chr(0xa2)       # 内容长度162个字节
+        content = chr(self.ver)  # version
+        content += chr(0xa2)  # 内容长度162个字节
         
         assert(len(username) <= 16)
         assert(len(password) <= 32)
@@ -62,8 +65,8 @@ class EtermLibrary(object):
             if ord(resp[0]) == 0 and ord(resp[1]) == len(resp) and ord(resp[2]) == 1:
                 self.sessionCount = ord(resp[4])
                 for i in range(self.sessionCount):
-                    ind = 5+5*i
-                    self.ascus.append(resp[ind:ind+5]) # save the H1 H2 A1 A2
+                    ind = 5 + 5 * i
+                    self.ascus.append(resp[ind:ind + 5])  # save the H1 H2 A1 A2
                     if resp[ind] != chr(0):
                         h1s.append(resp[ind])
                 break
@@ -87,9 +90,9 @@ class EtermLibrary(object):
         self.currentSessionIndex = index - 1
     
     def eterm_print(self, cmd, text):
-        beginIndex = text.find("\x1b\x4d")+2
+        beginIndex = text.find("\x1b\x4d") + 2
         endIndex = text.rfind("\x1e\x1b\x62")
-        content = ">"+ cmd + "\r" + text[beginIndex:endIndex] + ">"
+        content = ">" + cmd + "\r" + text[beginIndex:endIndex] + ">"
         content = self.eterm_print_pattern.sub(r"\1\r", content)
         content = content.replace('\x0d', os.linesep)
         print content
@@ -116,10 +119,11 @@ if __name__ == "__main__":
     
     server = config.get("eterm", "server")
     port = config.getint("eterm", "port")
-    username = config.get("eterm", "username").encode('ascii','ignore')
-    password = config.get("eterm", "password").encode('ascii','ignore')
+    username = config.get("eterm", "username").encode('ascii', 'ignore')
+    password = config.get("eterm", "password").encode('ascii', 'ignore')
     
-    el = EtermLibrary(server, port)   
+    el = EtermLibrary()
+    el.connect(server, port)   
     el.login(username, password)
     resp = el.sendCmd("da")
     resp = el.sendCmd("av:canpek/30oct/cz")
